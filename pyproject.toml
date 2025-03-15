@@ -1,13 +1,14 @@
 [project]
 name = "ailabel"
 version = "0.1.0"
-description = "Add your description here"
+description = "A tool for creating and managing labeled datasets for AI training"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "fastapi>=0.115.6",
     "google-generativeai>=0.8.3",
     "jinja2>=3.1.4",
+    "pytest>=8.3.5",
     "python-dotenv>=1.0.1",
     "python-multipart>=0.0.20",
     "requests>=2.32.3",
@@ -19,3 +20,17 @@ classifiers = ["Private :: Do Not Upload"]
 
 [project.scripts]
 label = "ailabel.cli.categorize_cli:main"
+
+[project.optional-dependencies]
+test = [
+    "pytest>=8.1.1",
+    "pytest-cov>=4.1.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100

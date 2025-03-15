@@ -1,4 +1,7 @@
+import os
+import sys
 import typer
+from pathlib import Path
 from ailabel.db.crud import (
     create_topic,
     get_all_topics,
@@ -7,7 +10,43 @@ from ailabel.db.crud import (
     get_recent_labeled_payloads,
     topic_exists,
 )
-from ailabel.lib.llms import generate_json
+from ailabel.db.database import data_dir, sqlite_url
+from ailabel.lib.llms import generate_json, Models
+
+
+def print_debug_info():
+    """Print debug information about the application configuration."""
+    # Get API key and mask it for security
+    api_key = os.environ.get("GEMINI_API_KEY", "")
+    masked_key = api_key[:4] + "*" * (len(api_key) - 4) if api_key else "Not set"
+    
+    typer.echo("=== AILabel Debug Information ===")
+    typer.echo(f"Python version: {sys.version}")
+    typer.echo(f"Database location: {data_dir}")
+    typer.echo(f"Database URL: {sqlite_url}")
+    typer.echo(f"Gemini API Key: {masked_key}")
+    
+    # Show configured models
+    typer.echo("\nConfigured Gemini models:")
+    for model in Models:
+        typer.echo(f"  {model.name}: {model.value}")
+    
+    # Count existing database records
+    try:
+        topics_count = len(get_all_topics())
+        typer.echo(f"\nDatabase status: {topics_count} topics defined")
+    except Exception as e:
+        typer.echo(f"\nDatabase status: Error accessing database - {e}")
+    
+    # Show environment and file paths
+    typer.echo("\nEnvironment:")
+    typer.echo(f"  Working directory: {os.getcwd()}")
+    typer.echo(f"  Python executable: {sys.executable}")
+    
+    # Check for .env file
+    env_file = Path('.env.secret')
+    env_exists = env_file.exists()
+    typer.echo(f"  .env.secret file: {'Found' if env_exists else 'Not found'}")
 
 
 # ------------------------------------------------------
@@ -19,11 +58,38 @@ app = typer.Typer(help="CLI for categorizing topics, labeling payloads, and pred
 topics_app = typer.Typer(help="Manage topics and labels.")
 
 
+# Create a separate topic-specific command group
+topic_app = typer.Typer(help="Operations on a specific topic")
+
+
+@topic_app.command("info")
+def topic_info(
+    labels: bool = typer.Option(False, "--labels", help="Show label statistics"),
+):
+    """
+    Show information about this topic.
+    Usage: label topics <topic_name> info [--labels]
+    """
+    # The topic_name is passed from the parent command
+    topic_name = get_current_topic()
+    try:
+        typer.echo(f'Topic: "{topic_name}"')
+
+        if labels:
+            stats = get_label_statistics(topic_name=topic_name)
+            typer.echo("\nLabel statistics:")
+            for label, count in stats.items():
+                typer.echo(f"- {label}: {count}")
+            typer.echo(f"Total labeled payloads: {sum(stats.values())}")
+    except Exception as e:
+        typer.echo(f"Error retrieving topic info: {e}")
+
+
 @topics_app.command("new")
 def newtopic(topic: str):
     """
     Create a new topic.
-    Usage: categorize topics create <topic>
+    Usage: label topics new <topic>
     """
     try:
         create_topic(name=topic)
@@ -36,7 +102,7 @@ def newtopic(topic: str):
 def list_topics():
     """
     List all existing topics.
-    Usage: categorize topics list
+    Usage: label topics list
     """
     try:
         all_topics = get_all_topics()
@@ -47,26 +113,47 @@ def list_topics():
         typer.echo(f"Error listing topics: {e}")
 
 
-@topics_app.command("info")
-def topic_info(
-    topic_name: str,
-    labels: bool = typer.Option(False, "--labels", help="Show label statistics"),
+# Variable to store the current topic in the command chain
+_current_topic = None
+
+def get_current_topic():
+    """Get the current topic in the command chain."""
+    return _current_topic
+
+
+@topics_app.callback(invoke_without_command=True)
+def topic_router(
+    ctx: typer.Context,
+    topic: str = typer.Argument(None, help="The topic to operate on")
 ):
     """
-    Show information about a specific topic.
-    Usage: categorize topics info <topic_name> [--labels]
+    Manage topics. If no subcommand is provided, lists all topics.
+    If a topic is provided, routes to topic-specific commands.
     """
-    try:
-        typer.echo(f'Topic: "{topic_name}"')
+    # If no command is provided at all, just list the topics
+    if ctx.invoked_subcommand is None and topic is None:
+        list_topics()
+        raise typer.Exit()
+    
+    # If a topic is provided but no subcommand, show topic info
+    elif topic and not ctx.resilient_parsing:
+        # Check if topic exists
+        if not topic_exists(name=topic):
+            typer.echo(f"Error: Topic '{topic}' does not exist.")
+            raise typer.Exit(code=1)
+            
+        # Store the topic
+        global _current_topic
+        _current_topic = topic
+        
+        # If no subcommand was provided after the topic, show topic info
+        if len(ctx.args) == 0 or (len(ctx.args) == 1 and ctx.args[0] == topic):
+            topic_info()
+            raise typer.Exit()
 
-        if labels:
-            stats = get_label_statistics(topic_name=topic_name)
-            typer.echo("\nLabel statistics:")
-            for label, count in stats.items():
-                typer.echo(f"- {label}: {count}")
-            typer.echo(f"Total labeled payloads: {sum(stats.values())}")
-    except Exception as e:
-        typer.echo(f"Error retrieving topic info: {e}")
+
+# Add the topic-specific commands to be accessible via 'label topics <topic> <command>'
+topics_app.add_typer(topic_app, name="{topic}")
 
 
 app.add_typer(topics_app, name="topics", help="Commands related to managing topics.")
@@ -83,9 +170,9 @@ def label(
     Label a payload under a given topic.
 
     Usage:
-      categorize label <topic> <payload> --label <correct label>\n
+      label label <topic> <payload> --label <correct label>\n
     Usage:
-      categorize label <topic> --interactive
+      label label <topic> --interactive
     """
     if interactive:
         if not topic_exists(name=topic):
@@ -126,7 +213,7 @@ def label(
 def predict(topic: str, payload: str):
     """
     Predict a label for a given payload in a topic.
-    Usage: categorize topics predict <topic> <payload>
+    Usage: label predict <topic> <payload>
     """
 
     def get_examples_for_topic(topic: str):
@@ -164,6 +251,23 @@ def predict(topic: str, payload: str):
 # ------------------------------------------------------
 # Entry point
 # ------------------------------------------------------
+@app.callback(invoke_without_command=True)
+def main_callback(
+    ctx: typer.Context,
+    debug: bool = typer.Option(False, "--debug", help="Print debug information about the current configuration."),
+):
+    """
+    CLI for labeling data with AI assistance.
+    """
+    if debug:
+        print_debug_info()
+        raise typer.Exit()
+    elif ctx.invoked_subcommand is None:
+        # Display help if no subcommand provided
+        typer.echo(ctx.get_help())
+        raise typer.Exit()
+
+
 def main():
     app()
 
