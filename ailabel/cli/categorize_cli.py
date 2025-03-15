@@ -58,42 +58,17 @@ app = typer.Typer(help="CLI for categorizing topics, labeling payloads, and pred
 topics_app = typer.Typer(help="Manage topics and labels.")
 
 
-# Create a separate topic-specific command group
-topic_app = typer.Typer(help="Operations on a specific topic")
-
-
-@topic_app.command("info")
-def topic_info(
-    labels: bool = typer.Option(False, "--labels", help="Show label statistics"),
-):
-    """
-    Show information about this topic.
-    Usage: label topics <topic_name> info [--labels]
-    """
-    # The topic_name is passed from the parent command
-    topic_name = get_current_topic()
-    try:
-        typer.echo(f'Topic: "{topic_name}"')
-
-        if labels:
-            stats = get_label_statistics(topic_name=topic_name)
-            typer.echo("\nLabel statistics:")
-            for label, count in stats.items():
-                typer.echo(f"- {label}: {count}")
-            typer.echo(f"Total labeled payloads: {sum(stats.values())}")
-    except Exception as e:
-        typer.echo(f"Error retrieving topic info: {e}")
-
-
 @topics_app.command("new")
-def newtopic(topic: str):
+def newtopic(
+    topic_name: str = typer.Argument(..., help="Name of the new topic to create")
+):
     """
     Create a new topic.
     Usage: label topics new <topic>
     """
     try:
-        create_topic(name=topic)
-        typer.echo(f'Topic "{topic}" created successfully.')
+        create_topic(name=topic_name)
+        typer.echo(f'Topic "{topic_name}" created successfully.')
     except Exception as e:
         typer.echo(f"Error creating topic: {e}")
 
@@ -113,47 +88,41 @@ def list_topics():
         typer.echo(f"Error listing topics: {e}")
 
 
-# Variable to store the current topic in the command chain
-_current_topic = None
+@topics_app.command("info")
+def topic_info(
+    topic_name: str = typer.Argument(..., help="Name of the topic to show information for"),
+    labels: bool = typer.Option(False, "--labels", help="Show label statistics"),
+):
+    """
+    Show information about a specific topic.
+    Usage: label topics info <topic_name> [--labels]
+    """
+    try:
+        # Check if topic exists
+        if not topic_exists(name=topic_name):
+            typer.echo(f"Error: Topic '{topic_name}' does not exist.")
+            raise typer.Exit(code=1)
+            
+        typer.echo(f'Topic: "{topic_name}"')
 
-def get_current_topic():
-    """Get the current topic in the command chain."""
-    return _current_topic
+        if labels:
+            stats = get_label_statistics(topic_name=topic_name)
+            typer.echo("\nLabel statistics:")
+            for label, count in stats.items():
+                typer.echo(f"- {label}: {count}")
+            typer.echo(f"Total labeled payloads: {sum(stats.values())}")
+    except Exception as e:
+        typer.echo(f"Error retrieving topic info: {e}")
 
 
 @topics_app.callback(invoke_without_command=True)
-def topic_router(
-    ctx: typer.Context,
-    topic: str = typer.Argument(None, help="The topic to operate on")
-):
+def topics_callback(ctx: typer.Context):
     """
     Manage topics. If no subcommand is provided, lists all topics.
-    If a topic is provided, routes to topic-specific commands.
     """
-    # If no command is provided at all, just list the topics
-    if ctx.invoked_subcommand is None and topic is None:
+    if ctx.invoked_subcommand is None:
+        # No subcommand was provided, so list all topics
         list_topics()
-        raise typer.Exit()
-    
-    # If a topic is provided but no subcommand, show topic info
-    elif topic and not ctx.resilient_parsing:
-        # Check if topic exists
-        if not topic_exists(name=topic):
-            typer.echo(f"Error: Topic '{topic}' does not exist.")
-            raise typer.Exit(code=1)
-            
-        # Store the topic
-        global _current_topic
-        _current_topic = topic
-        
-        # If no subcommand was provided after the topic, show topic info
-        if len(ctx.args) == 0 or (len(ctx.args) == 1 and ctx.args[0] == topic):
-            topic_info()
-            raise typer.Exit()
-
-
-# Add the topic-specific commands to be accessible via 'label topics <topic> <command>'
-topics_app.add_typer(topic_app, name="{topic}")
 
 
 app.add_typer(topics_app, name="topics", help="Commands related to managing topics.")
@@ -161,60 +130,119 @@ app.add_typer(topics_app, name="topics", help="Commands related to managing topi
 
 @app.command()
 def label(
-    topic: str,
-    payload: str = typer.Argument(None, help="The payload to label."),
-    correct_label: str = typer.Option(None, "--label", help="Label for the payload."),
-    interactive: bool = typer.Option(False, "--interactive", help="Enter interactive labeling mode."),
+    payload: str = typer.Argument(None, help="The payload to label. Use '-' to read from stdin."),
+    topic: str = typer.Option(..., "--topic", "-t", help="The topic to use for labeling"),
+    label_value: str = typer.Option(None, "--as", "-a", help="Label to assign to the payload"),
+    interactive: bool = typer.Option(False, "--interactive", "-i", help="Enter interactive labeling mode"),
+    json_output: bool = typer.Option(False, "--json", "-j", help="Output the result in JSON format"),
+    quiet: bool = typer.Option(False, "--quiet", "-q", help="Suppress output (except errors)"),
 ):
     """
     Label a payload under a given topic.
 
     Usage:
-      label label <topic> <payload> --label <correct label>\n
-    Usage:
-      label label <topic> --interactive
+      label label "This product is amazing!" --topic=sentiment --as=positive
+      echo "This product is amazing!" | label label - --topic=sentiment --as=positive
+      label label --topic=sentiment --interactive
     """
-    if interactive:
-        if not topic_exists(name=topic):
-            typer.echo(f"Topic '{topic}' does not exist.")
-            raise typer.Exit(code=1)
+    # Check if topic exists
+    if not topic_exists(name=topic):
+        typer.echo(f"Error: Topic '{topic}' does not exist.")
+        raise typer.Exit(code=1)
 
+    # Interactive mode
+    if interactive:
         typer.echo(f"--- Interactive labeling for topic: '{topic}' ---")
         typer.echo("Press Ctrl+C to exit at any time.\n")
 
-        while True:
-            payload_input = typer.prompt("Enter payload")
-            label_input = typer.prompt("Enter label")
-            try:
-                create_labeled_payload(payload=payload_input, label_name=label_input, topic_name=topic)
-                typer.echo(f'Payload: "{payload_input}"')
-                typer.echo(f'Label: "{label_input}"')
-                typer.echo(f'Topic: "{topic}"')
-                typer.echo("Label successfully recorded.\n")
-            except Exception as e:
-                typer.echo(f"Error storing label: {e}")
-    else:
-        if not payload or not correct_label:
-            typer.echo(
-                "Error: You must provide both <payload> and --label <correct-label> unless in --interactive mode."
-            )
-            raise typer.Exit(code=1)
         try:
-            create_labeled_payload(payload=payload, label_name=correct_label, topic_name=topic)
-            typer.echo(f'Payload: "{payload}"')
-            typer.echo(f'Label: "{correct_label}"')
-            typer.echo(f'Topic: "{topic}"')
-            typer.echo("Label successfully recorded.\n")
+            while True:
+                payload_input = typer.prompt("Enter payload")
+                label_input = typer.prompt("Enter label")
+                try:
+                    create_labeled_payload(payload=payload_input, label_name=label_input, topic_name=topic)
+                    if not quiet:
+                        if json_output:
+                            import json
+                            result = {"payload": payload_input, "topic": topic, "label": label_input, "status": "success"}
+                            typer.echo(json.dumps(result))
+                        else:
+                            typer.echo(f'Payload: "{payload_input}"')
+                            typer.echo(f'Label: "{label_input}"')
+                            typer.echo(f'Topic: "{topic}"')
+                            typer.echo("Label successfully recorded.\n")
+                except Exception as e:
+                    typer.echo(f"Error storing label: {e}", err=True)
+        except KeyboardInterrupt:
+            typer.echo("\nExiting interactive mode.")
+            return
+
+    # Standard mode
+    else:
+        # Handle stdin if payload is '-'
+        if payload == "-":
+            import sys
+            if sys.stdin.isatty():
+                typer.echo("Error: No input provided on stdin", err=True)
+                raise typer.Exit(code=1)
+            payload = sys.stdin.read().strip()
+        
+        # Validate input
+        if not payload:
+            typer.echo("Error: No payload provided. Use a positional argument or pipe input with '-'", err=True)
+            raise typer.Exit(code=1)
+        
+        if not label_value:
+            typer.echo("Error: No label provided. Use --as=LABEL to specify a label", err=True)
+            raise typer.Exit(code=1)
+        
+        # Create the labeled payload
+        try:
+            created = create_labeled_payload(payload=payload, label_name=label_value, topic_name=topic)
+            
+            if not quiet:
+                if json_output:
+                    import json
+                    result = {"id": created.id, "payload": payload, "topic": topic, "label": label_value, "status": "success"}
+                    typer.echo(json.dumps(result))
+                else:
+                    typer.echo(f'Payload: "{payload}"')
+                    typer.echo(f'Label: "{label_value}"')
+                    typer.echo(f'Topic: "{topic}"')
+                    typer.echo("Label successfully recorded.")
         except Exception as e:
-            typer.echo(f"Error storing label: {e}")
+            typer.echo(f"Error storing label: {e}", err=True)
+            raise typer.Exit(code=1)
 
 
 @app.command()
-def predict(topic: str, payload: str):
+def predict(
+    payload: str = typer.Argument(None, help="The payload to predict a label for. Use '-' to read from stdin."),
+    topic: str = typer.Option(..., "--topic", "-t", help="The topic to use for prediction"),
+    json_output: bool = typer.Option(False, "--json", "-j", help="Output the result in JSON format"),
+):
     """
     Predict a label for a given payload in a topic.
-    Usage: label predict <topic> <payload>
+    
+    Usage: 
+      label predict "I love this product" --topic=sentiment
+      echo "I love this product" | label predict - --topic=sentiment
     """
+    # Check if topic exists
+    if not topic_exists(name=topic):
+        typer.echo(f"Error: Topic '{topic}' does not exist.")
+        raise typer.Exit(code=1)
+    
+    # Get input from stdin if payload is "-"
+    if payload == "-":
+        import sys
+        if sys.stdin.isatty():
+            typer.echo("Error: No input provided on stdin")
+            raise typer.Exit(code=1)
+        payload = sys.stdin.read().strip()
+    elif payload is None:
+        typer.echo("Error: No payload provided. Use a positional argument or pipe input with '-'")
+        raise typer.Exit(code=1)
 
     def get_examples_for_topic(topic: str):
         topic_actual_labels = get_recent_labeled_payloads(topic)
@@ -245,7 +273,16 @@ def predict(topic: str, payload: str):
         )
         return predicted_label["label"]
 
-    typer.echo(predict_label_for_payload(topic, payload))
+    # Get prediction
+    label = predict_label_for_payload(topic, payload)
+    
+    # Format output
+    if json_output:
+        import json
+        result = {"payload": payload, "topic": topic, "label": label}
+        typer.echo(json.dumps(result))
+    else:
+        typer.echo(label)
 
 
 # ------------------------------------------------------

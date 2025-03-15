@@ -33,16 +33,25 @@ label topics new sentiment
 label topics list
 
 # Get information about a topic
-label topics sentiment info --labels
+label topics info sentiment --labels
 
 # Label a payload
-label label sentiment "This product is amazing!" --label positive
+label label "This product is amazing!" --topic=sentiment --as=positive
+
+# Label from stdin
+echo "This product is amazing!" | label label - --topic=sentiment --as=positive
 
 # Interactive labeling
-label label sentiment --interactive
+label label --topic=sentiment --interactive
+
+# JSON output format
+label label "Product was great" --topic=sentiment --as=positive --json
 
 # Predict a label for a new payload
-label predict sentiment "I love this product"
+label predict "I love this product" --topic=sentiment
+
+# Predict from stdin and get JSON output
+echo "I love this product" | label predict - --topic=sentiment --json
 
 # Show debug information
 label --debug
