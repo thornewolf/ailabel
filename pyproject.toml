@@ -5,16 +5,11 @@ description = "A tool for creating and managing labeled datasets for AI training
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "fastapi>=0.115.6",
     "google-generativeai>=0.8.3",
-    "jinja2>=3.1.4",
-    "pytest>=8.3.5",
     "python-dotenv>=1.0.1",
-    "python-multipart>=0.0.20",
     "requests>=2.32.3",
     "sqlmodel>=0.0.22",
     "typer>=0.15.1",
-    "uvicorn>=0.32.1",
 ]
 classifiers = ["Private :: Do Not Upload"]
 

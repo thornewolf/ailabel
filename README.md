@@ -25,8 +25,6 @@ pip install -e ".[test]"
 
 ## Usage
 
-### CLI
-
 ```bash
 # Create a new topic
 label topics new sentiment
@@ -35,7 +33,7 @@ label topics new sentiment
 label topics list
 
 # Get information about a topic
-label topics info sentiment --labels
+label topics sentiment info --labels
 
 # Label a payload
 label label sentiment "This product is amazing!" --label positive
@@ -45,16 +43,10 @@ label label sentiment --interactive
 
 # Predict a label for a new payload
 label predict sentiment "I love this product"
+
+# Show debug information
+label --debug
 ```
-
-### Web Interface
-
-```bash
-# Start the web server
-python -m ailabel.server_main
-```
-
-Then open your browser to http://localhost:8000
 
 ## Environment Variables
 
