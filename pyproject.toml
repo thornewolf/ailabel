@@ -28,6 +28,10 @@ classifiers = [
     "Topic :: Utilities",
 ]
 
+[project.urls]
+Homepage = "https://github.com/yourusername/ailabel"
+"Bug Tracker" = "https://github.com/yourusername/ailabel/issues"
+
 [project.scripts]
 label = "ailabel.cli.categorize_cli:main"
 

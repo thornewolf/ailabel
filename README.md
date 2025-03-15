@@ -1,5 +1,8 @@
 # AILabel
 
+[![PyPI version](https://badge.fury.io/py/ailabel.svg)](https://badge.fury.io/py/ailabel)
+[![Python Package](https://github.com/yourusername/ailabel/actions/workflows/python-package.yml/badge.svg)](https://github.com/yourusername/ailabel/actions/workflows/python-package.yml)
+
 A tool for creating and managing labeled datasets for AI training.
 
 ## Features
@@ -7,9 +10,21 @@ A tool for creating and managing labeled datasets for AI training.
 - Create and manage topics (categories for classification)
 - Label text payloads within topics
 - Predict labels for new data using AI (Google Gemini)
-- Access labeled data via a web interface
+- Fast, Unix-style CLI with streaming and batch processing support
 
 ## Installation
+
+### From PyPI
+
+```bash
+# Install from PyPI
+pip install ailabel
+
+# For development, install test dependencies
+pip install "ailabel[test]"
+```
+
+### From Source
 
 ```bash
 # Clone the repository
