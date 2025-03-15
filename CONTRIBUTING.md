@@ -12,12 +12,12 @@ Thank you for your interest in contributing to AILabel! This document provides g
 
 2. Install development dependencies
    ```bash
-   pip install -e ".[test]"
+   uv pip install -e ".[test]"
    ```
 
 3. Run tests to ensure everything is working
    ```bash
-   pytest
+   uv run pytest
    ```
 
 ## Code Style

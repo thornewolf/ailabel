@@ -17,11 +17,11 @@ A tool for creating and managing labeled datasets for AI training.
 ### From PyPI
 
 ```bash
-# Install from PyPI
-pip install ailabel
+# Install from PyPI using uv
+uv pip install ailabel
 
 # For development, install test dependencies
-pip install "ailabel[test]"
+uv pip install "ailabel[test]"
 ```
 
 ### From Source
@@ -31,11 +31,11 @@ pip install "ailabel[test]"
 git clone https://github.com/yourusername/ailabel.git
 cd ailabel
 
-# Install the package
-pip install -e .
+# Install the package using uv
+uv pip install -e .
 
 # For development, install test dependencies
-pip install -e ".[test]"
+uv pip install -e ".[test]"
 ```
 
 ## Usage
