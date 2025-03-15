@@ -53,6 +53,9 @@ label predict "I love this product" --topic=sentiment
 # Predict from stdin and get JSON output
 echo "I love this product" | label predict - --topic=sentiment --json
 
+# Process multiple items in batch mode
+cat items.txt | label predict - --topic=lang-or-animal --batch
+
 # Show debug information
 label --debug
 ```

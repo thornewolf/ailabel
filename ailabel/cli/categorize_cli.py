@@ -220,6 +220,7 @@ def predict(
     payload: str = typer.Argument(None, help="The payload to predict a label for. Use '-' to read from stdin."),
     topic: str = typer.Option(..., "--topic", "-t", help="The topic to use for prediction"),
     json_output: bool = typer.Option(False, "--json", "-j", help="Output the result in JSON format"),
+    batch: bool = typer.Option(False, "--batch", "-b", help="Process multi-line input as separate items (one per line)"),
 ):
     """
     Predict a label for a given payload in a topic.
@@ -227,21 +228,22 @@ def predict(
     Usage: 
       label predict "I love this product" --topic=sentiment
       echo "I love this product" | label predict - --topic=sentiment
+      cat items.txt | label predict - --topic=sentiment --batch
     """
     # Check if topic exists
     if not topic_exists(name=topic):
-        typer.echo(f"Error: Topic '{topic}' does not exist.")
+        typer.echo(f"Error: Topic '{topic}' does not exist.", err=True)
         raise typer.Exit(code=1)
     
     # Get input from stdin if payload is "-"
     if payload == "-":
         import sys
         if sys.stdin.isatty():
-            typer.echo("Error: No input provided on stdin")
+            typer.echo("Error: No input provided on stdin", err=True)
             raise typer.Exit(code=1)
         payload = sys.stdin.read().strip()
     elif payload is None:
-        typer.echo("Error: No payload provided. Use a positional argument or pipe input with '-'")
+        typer.echo("Error: No payload provided. Use a positional argument or pipe input with '-'", err=True)
         raise typer.Exit(code=1)
 
     def get_examples_for_topic(topic: str):
@@ -259,30 +261,77 @@ def predict(
         distinct_labels = list(labels_for_topic.keys())
         if not distinct_labels:
             raise ValueError(f"Topic '{topic}' has no labels. Please label some payloads first.")
-        predicted_label = generate_json(
-            payload,
-            history=get_examples_for_topic(topic),
-            system_instruction=f"""Your task is to label incoming payloads for topic "{topic}".
+        
+        # For multi-line input in batch mode, we need to adjust the system prompt
+        history = get_examples_for_topic(topic)
+        if batch and "\n" in payload:
+            # For batch input, ask for an array of labels
+            system_instruction = f"""Your task is to label each line of the input payload for topic "{topic}".
+                    It is a classification task with the following possible labels: {distinct_labels}.
+                    The input contains multiple items, one per line.
+                    Classify each line separately and return an array of labels.
+                    Your response should have the format:
+                    {{ "label": ["label1", "label2", "label3", ...] }}
+                    Where each item in the array corresponds to the label for that line in order.
+                    Example for 2 lines:
+                    {{ "label": ["{distinct_labels[0]}", "{distinct_labels[0]}"] }}"""
+        else:
+            # For single item input
+            system_instruction = f"""Your task is to label incoming payloads for topic "{topic}".
                     It is a classification task with the following possible labels: {distinct_labels}.
                     Your response should have the format:
                     {{ "label": "your-label-here" }}
                     Where "your-label-here" is one of the possible labels for this topic.
                     Example:
                     {{ "label": "{distinct_labels[0]}" }}
-                    {{ "label": "{distinct_labels[1]}" }}""",
+                    {{ "label": "{distinct_labels[1]}" }}"""
+        
+        predicted_label = generate_json(
+            payload,
+            history=history,
+            system_instruction=system_instruction,
         )
         return predicted_label["label"]
 
-    # Get prediction
-    label = predict_label_for_payload(topic, payload)
-    
-    # Format output
-    if json_output:
+    # Process in batch mode if requested and the payload contains newlines
+    if batch and "\n" in payload:
+        lines = payload.strip().split("\n")
+        # Get predictions for all lines at once
+        labels = predict_label_for_payload(topic, payload)
+        
+        # Ensure we have the right number of labels
+        if not isinstance(labels, list):
+            labels = [labels]  # Handle case where model returns a single label
+        
+        # Extend or truncate the labels array to match input lines
+        if len(labels) < len(lines):
+            labels.extend([labels[-1]] * (len(lines) - len(labels)))
+        elif len(labels) > len(lines):
+            labels = labels[:len(lines)]
+        
+        # Output results
         import json
-        result = {"payload": payload, "topic": topic, "label": label}
-        typer.echo(json.dumps(result))
+        for i, (line, label) in enumerate(zip(lines, labels)):
+            if json_output:
+                result = {"payload": line, "topic": topic, "label": label, "line": i+1}
+                typer.echo(json.dumps(result))
+            else:
+                typer.echo(f"{label}")
     else:
-        typer.echo(label)
+        # Single prediction
+        try:
+            label = predict_label_for_payload(topic, payload)
+            
+            # Format output
+            if json_output:
+                import json
+                result = {"payload": payload, "topic": topic, "label": label}
+                typer.echo(json.dumps(result))
+            else:
+                typer.echo(label)
+        except Exception as e:
+            typer.echo(f"Error predicting label: {e}", err=True)
+            raise typer.Exit(code=1)
 
 
 # ------------------------------------------------------
