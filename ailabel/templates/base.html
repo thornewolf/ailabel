@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="corporate">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="htmx-config" content='{"defaultSwapStyle":"outerHTML"}'>
+    <title>Title</title>
+    <link href="/static/css/tailwind.css?nonce=1" rel="stylesheet">
+    <script src="https://unpkg.com/htmx.org@2.0.4" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous"></script>
+</head>
+<body class="pb-4 flex flex-col h-dvh">
+    <nav class="max-w-xl mx-auto flex gap-4 p-4">
+        <a href="/" class="hover:underline">Home</a>
+    </nav>
+    <main class="px-4 pt-8 md:p-8 flex-grow">
+        <div class="max-w-xl mx-auto space-y-8 flex flex-col h-full">
+            <div class="flex flex-col h-full">
+            {% block content %}{% endblock %}
+            </div>
+        </div>
+    </main>
+    <footer class="mt-auto"></footer>
+</body>
+</html>

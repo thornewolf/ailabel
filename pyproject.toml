@@ -1,0 +1,21 @@
+[project]
+name = "ailabel"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.115.6",
+    "google-generativeai>=0.8.3",
+    "jinja2>=3.1.4",
+    "python-dotenv>=1.0.1",
+    "python-multipart>=0.0.20",
+    "requests>=2.32.3",
+    "sqlmodel>=0.0.22",
+    "typer>=0.15.1",
+    "uvicorn>=0.32.1",
+]
+classifiers = ["Private :: Do Not Upload"]
+
+[project.scripts]
+label = "ailabel.cli.categorize_cli:main"

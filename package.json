@@ -1,0 +1,12 @@
+{
+  "dependencies": {
+    "@tailwindcss/cli": "^4.0.0-beta.8",
+    "autoprefixer": "^10.4.20",
+    "npx": "^3.0.0",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^4.0.0-beta.8"
+  },
+  "devDependencies": {
+    "daisyui": "^5.0.0-beta.1"
+  }
+}

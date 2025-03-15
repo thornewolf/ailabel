@@ -1,0 +1,23 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Generated CSS
+static/css/tailwind.css
+
+# npm
+node_modules/
+
+# databases
+*.sqlite3
+*.db
+
+# secrets
+.env.secret
