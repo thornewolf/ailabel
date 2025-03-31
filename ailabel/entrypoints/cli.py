@@ -3,20 +3,20 @@ import sys
 from typing import Annotated
 import typer
 from pathlib import Path
-from db.crud import (
+from ailabel.db.crud import (
     create_topic,
     get_all_topics,
     get_label_statistics,
     create_labeled_payload,
     topic_exists,
 )
-from predictions import label_payload
-from lib.llms import Models
+from ailabel.predictions import label_payload
 
 
 def print_debug_info():
     """Print debug information about the application configuration."""
-    from db.database import data_dir, sqlite_url
+    from ailabel.db.database import data_dir, sqlite_url
+    from ailabel.lib.llms import Models
 
     # Get API key and mask it for security
     api_key = os.environ.get("GEMINI_API_KEY", "")

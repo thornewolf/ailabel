@@ -25,8 +25,9 @@ Usage:
 # ruff: noqa: F401
 from typing import Callable, Concatenate
 from sqlmodel import SQLModel, create_engine, Session
-from db import models  # intentional to have models for metadata.create_all
 from pathlib import Path
+
+from ailabel.db import models  # intentional to have models for metadata.create_all
 
 data_dir = Path.home() / ".local" / "share" / "ailabel"
 data_dir.mkdir(parents=True, exist_ok=True)

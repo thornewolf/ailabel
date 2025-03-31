@@ -1,9 +1,9 @@
-from db.crud import (
+from ailabel.db.crud import (
     get_label_statistics,
     get_recent_labeled_payloads,
 )
 
-from lib.llms import generate_json
+from ailabel.lib.llms import generate_json
 
 
 def label_payload(topic: str, payload: str):

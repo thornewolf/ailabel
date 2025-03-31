@@ -11,11 +11,9 @@ from ailabel.lib.llms import (
 
 def test_models_enum():
     """Test the Models enum."""
-    assert Models.GEMINI_1_5_FLASH == "models/gemini-1.5-flash"
-    assert Models.GEMINI_1_5_FLASH_8B == "models/gemini-1.5-flash-8b"
-    assert Models.GEMINI_2_0_FLASH_EXP == "models/gemini-2.0-flash-exp"
-    assert Models.GEMINI_2_0_FLASH == "models/gemini-2.0-flash"
     assert Models.GEMINI_2_0 == "models/gemini-2.0"
+    assert Models.GEMINI_2_0_FLASH == "models/gemini-2.0-flash"
+    assert Models.GEMINI_2_0_FLASH_8B == "models/gemini-2.0-flash-8b"
 
 
 @patch("ailabel.lib.llms.genai.GenerativeModel")
@@ -29,7 +27,7 @@ def test_get_gemini(mock_generative_model):
     model = get_gemini()
     assert model == mock_model
     mock_generative_model.assert_called_once_with(
-        Models.GEMINI_1_5_FLASH,
+        Models.GEMINI_2_0_FLASH,
         system_instruction=None
     )
     
@@ -41,7 +39,7 @@ def test_get_gemini(mock_generative_model):
     model = get_gemini(system_instruction=system_instruction)
     assert model == mock_model
     mock_generative_model.assert_called_once_with(
-        Models.GEMINI_1_5_FLASH,
+        Models.GEMINI_2_0_FLASH,
         system_instruction=system_instruction
     )
     
