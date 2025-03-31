@@ -53,8 +53,22 @@ Releases are managed by the maintainers. The process involves:
    - `pyproject.toml`
    - `ailabel/__init__.py`
 2. Updating the CHANGELOG.md file
-3. Creating a new release on GitHub
-4. Publishing to PyPI
+3. Building the distribution packages:
+   ```bash
+   uv build
+   ```
+4. Uploading to PyPI using Twine:
+   ```bash
+   twine upload dist/*
+   ```
+5. Creating a new release on GitHub
+6. Tagging the release in Git:
+   ```bash
+   git tag -a v0.1.0 -m "Release v0.1.0"
+   git push origin v0.1.0
+   ```
+
+For detailed publishing instructions, refer to [PUBLISH.md](PUBLISH.md).
 
 ## License
 

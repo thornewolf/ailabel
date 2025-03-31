@@ -12,6 +12,23 @@ A tool for creating and managing labeled datasets for AI training.
 - Predict labels for new data using AI (Google Gemini)
 - Fast, Unix-style CLI with streaming and batch processing support
 
+## Quickstart
+
+```bash
+# Install uv
+curl -LsSf https://astral.sh/uv/install.sh | sh
+# Install ailabel
+uv tool install ailabel
+# Set your gemini api key
+export GOOGLE_API_KEY="AIz..."
+# Example labelling
+label "This product is amazing" --topic=sentiment --as=positive
+label "This product is horrible" --topic=sentiment --as=negative 
+# Test the labelling
+label -t sentiment "I'm not sure how i feel. i don't like it"
+# negative
+```
+
 ## Installation
 
 ### From PyPI
@@ -77,10 +94,10 @@ label --debug
 
 ## Environment Variables
 
-Create a `.env.secret` file with the following variables:
+Create a `.env.secret` file with the following variables or export directly:
 
 ```
-GEMINI_API_KEY=your_gemini_api_key
+GOOGLE_API_KEY=your_gemini_api_key
 ```
 
 ## Development
@@ -98,3 +115,7 @@ pytest --cov=ailabel
 ## License
 
 MIT 
+
+```
+uvx --no-cache --from . label -t school math
+```
