@@ -8,4 +8,4 @@ AILabel provides a command-line interface for:
 For detailed usage, see the README or run: `label --help`
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"

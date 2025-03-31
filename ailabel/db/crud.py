@@ -12,7 +12,6 @@ The module includes operations for:
 
 from typing import Optional
 from sqlmodel import Session, select
-from datetime import datetime
 from .models import Topic, Label, LabeledPayload
 from .database import with_session
 
@@ -20,14 +19,14 @@ from .database import with_session
 @with_session
 def create_topic(session: Session, name: str) -> Topic:
     """Create a new topic.
-    
+
     Args:
         session: The database session
         name: The name of the topic to create
-        
+
     Returns:
         The created Topic object
-        
+
     Raises:
         IntegrityError: If a topic with the same name already exists
     """
@@ -41,15 +40,15 @@ def create_topic(session: Session, name: str) -> Topic:
 @with_session
 def create_label(session: Session, name: str, topic_name: str) -> Label:
     """Create a new label for a topic.
-    
+
     Args:
         session: The database session
         name: The name of the label to create
         topic_name: The name of the topic this label belongs to
-        
+
     Returns:
         The created Label object
-        
+
     Raises:
         IntegrityError: If a label with the same name already exists or the topic doesn't exist
     """
@@ -63,16 +62,16 @@ def create_label(session: Session, name: str, topic_name: str) -> Label:
 @with_session
 def create_labeled_payload(session: Session, payload: str, label_name: str, topic_name: str) -> LabeledPayload:
     """Store a labeled payload.
-    
+
     Args:
         session: The database session
         payload: The text content to label
         label_name: The name of the label to apply
         topic_name: The name of the topic this labeled payload belongs to
-        
+
     Returns:
         The created LabeledPayload object
-        
+
     Raises:
         IntegrityError: If the label or topic doesn't exist
     """
@@ -90,10 +89,10 @@ def create_labeled_payload(session: Session, payload: str, label_name: str, topi
 @with_session
 def get_all_topics(session: Session) -> list[Topic]:
     """Get all topics.
-    
+
     Args:
         session: The database session
-        
+
     Returns:
         A list of all Topic objects in the database
     """
@@ -104,11 +103,11 @@ def get_all_topics(session: Session) -> list[Topic]:
 @with_session
 def get_topic(session: Session, name: str) -> Optional[Topic]:
     """Get a specific topic by name.
-    
+
     Args:
         session: The database session
         name: The name of the topic to retrieve
-        
+
     Returns:
         The Topic object if found, None otherwise
     """
@@ -119,11 +118,11 @@ def get_topic(session: Session, name: str) -> Optional[Topic]:
 @with_session
 def get_labels_for_topic(session: Session, topic_name: str) -> list[Label]:
     """Get all labels for a specific topic.
-    
+
     Args:
         session: The database session
         topic_name: The name of the topic to get labels for
-        
+
     Returns:
         A list of Label objects for the specified topic
     """
@@ -160,11 +159,11 @@ def get_label_statistics(session: Session, topic_name: str) -> dict[str, int]:
 @with_session
 def topic_exists(session: Session, name: str) -> bool:
     """Check if a topic exists.
-    
+
     Args:
         session: The database session
         name: The name of the topic to check
-        
+
     Returns:
         True if the topic exists, False otherwise
     """
@@ -179,12 +178,12 @@ def get_recent_labeled_payloads(
     limit: int = 10,
 ) -> list[LabeledPayload]:
     """Get recent labeled payloads for a topic.
-    
+
     Args:
         session: The database session
         topic_name: The name of the topic to get payloads for
         limit: Maximum number of payloads to return (default: 10)
-        
+
     Returns:
         A list of LabeledPayload objects ordered by creation date (newest first)
     """
