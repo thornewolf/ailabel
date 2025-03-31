@@ -18,18 +18,20 @@ import os
 from typing import Dict, Any
 import json
 import functools
-import dotenv
 from enum import Enum
 import google.generativeai as genai
 from google.generativeai.types import GenerationConfig, ContentDict
 
 
-# Load API key from environment variables
-dotenv.load_dotenv()
-dotenv.load_dotenv(".env.secret")
-
 # Configure the Gemini API client
-genai.configure(api_key=os.environ.get("GEMINI_API_KEY"), transport="rest")
+api_key = os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY")
+if not api_key:
+    raise ValueError(
+        "API key not found. Please set the GOOGLE_API_KEY environment variable.\n"
+        "You can do this by running: export GOOGLE_API_KEY=\"your-api-key\"\n"
+        "Or by creating a .env.secret file with GOOGLE_API_KEY=your-api-key"
+    )
+genai.configure(api_key=api_key, transport="rest")
 
 
 class Models(str, Enum):

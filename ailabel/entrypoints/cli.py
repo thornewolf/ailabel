@@ -1,57 +1,22 @@
-import os
+import dotenv
+
+# Load API key from environment variables
+dotenv.load_dotenv()
+dotenv.load_dotenv(".env.secret")
+
 import sys
 from typing import Annotated
 import typer
-from pathlib import Path
 from ailabel.db.crud import (
     create_topic,
-    get_all_topics,
     get_label_statistics,
     create_labeled_payload,
     topic_exists,
 )
-from ailabel.predictions import label_payload
+from ailabel.label_prediction import label_payload
 
 
-def print_debug_info():
-    """Print debug information about the application configuration."""
-    from ailabel.db.database import data_dir, sqlite_url
-    from ailabel.lib.llms import Models
-
-    # Get API key and mask it for security
-    api_key = os.environ.get("GEMINI_API_KEY", "")
-    masked_key = api_key[:4] + "*" * (len(api_key) - 4) if api_key else "Not set"
-
-    typer.echo("=== AILabel Debug Information ===")
-    typer.echo(f"Python version: {sys.version}")
-    typer.echo(f"Database location: {data_dir}")
-    typer.echo(f"Database URL: {sqlite_url}")
-    typer.echo(f"Gemini API Key: {masked_key}")
-
-    # Show configured models
-    typer.echo("\nConfigured Gemini models:")
-    for model in Models:
-        typer.echo(f"  {model.name}: {model.value}")
-
-    # Count existing database records
-    try:
-        topics_count = len(get_all_topics())
-        typer.echo(f"\nDatabase status: {topics_count} topics defined")
-    except Exception as e:
-        typer.echo(f"\nDatabase status: Error accessing database - {e}")
-
-    # Show environment and file paths
-    typer.echo("\nEnvironment:")
-    typer.echo(f"  Working directory: {os.getcwd()}")
-    typer.echo(f"  Python executable: {sys.executable}")
-
-    # Check for .env file
-    env_file = Path(".env.secret")
-    env_exists = env_file.exists()
-    typer.echo(f"  .env.secret file: {'Found' if env_exists else 'Not found'}")
-
-
-def _ensure_stdin_exists():
+def _ensure_stdin_passed():
     import sys
 
     if sys.stdin.isatty():
@@ -59,10 +24,7 @@ def _ensure_stdin_exists():
         raise typer.Exit(code=1)
 
 
-def _display_topic_details(
-    topic_name: str = typer.Argument(..., help="Name of the topic to show information for"),
-    labels: bool = typer.Option(False, "--labels", help="Show label statistics"),
-):
+def _display_topic_details(topic_name: str):
     """
     Show information about a specific topic.
     Usage: label topics info <topic_name> [--labels]
@@ -74,12 +36,11 @@ def _display_topic_details(
 
     typer.echo(f'Topic: "{topic_name}"')
 
-    if labels:
-        stats = get_label_statistics(topic_name=topic_name)
-        typer.echo("\nLabel statistics:")
-        for label, count in stats.items():
-            typer.echo(f"- {label}: {count}")
-        typer.echo(f"Total labeled payloads: {sum(stats.values())}")
+    stats = get_label_statistics(topic_name=topic_name)
+    typer.echo("\nLabel statistics:")
+    for label, count in stats.items():
+        typer.echo(f"- {label}: {count}")
+    typer.echo(f"Total labeled payloads: {sum(stats.values())}")
 
 
 # ------------------------------------------------------
@@ -108,7 +69,7 @@ def main(
 
     # Handle stdin if payload is '-'
     if payload == "-":
-        _ensure_stdin_exists()
+        _ensure_stdin_passed()
         payload = sys.stdin.read().strip()
 
     match (payload, label_value):
@@ -118,8 +79,15 @@ def main(
             typer.echo("Error: No payload provided. Use a positional argument or pipe input with '-'", err=True)
             raise typer.Exit(code=1)
         case (_, ""):
-            typer.echo(label_payload(topic, payload))
-            raise typer.Exit(code=0)
+            try:
+                typer.echo(label_payload(topic, payload))
+                raise typer.Exit(code=0)
+            except ValueError as e:
+                if "API key not found" in str(e):
+                    typer.echo(f"Error: {e}", err=True)
+                    typer.echo("\nPlease set your API key as described in the README:\n  export GOOGLE_API_KEY=\"AIz...\"", err=True)
+                    raise typer.Exit(code=1)
+                raise
         case (_, _):
             created = create_labeled_payload(payload=payload, label_name=label_value, topic_name=topic)
             typer.echo(

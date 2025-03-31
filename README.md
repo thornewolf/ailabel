@@ -1,7 +1,7 @@
 # AILabel
 
 [![PyPI version](https://badge.fury.io/py/ailabel.svg)](https://badge.fury.io/py/ailabel)
-[![Python Package](https://github.com/yourusername/ailabel/actions/workflows/python-package.yml/badge.svg)](https://github.com/yourusername/ailabel/actions/workflows/python-package.yml)
+[![Python Package](https://github.com/thornewolf/ailabel/actions/workflows/python-package.yml/badge.svg)](https://github.com/thornewolf/ailabel/actions/workflows/python-package.yml)
 
 A tool for creating and managing labeled datasets for AI training.
 
@@ -45,7 +45,7 @@ uv pip install "ailabel[test]"
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/ailabel.git
+git clone https://github.com/thornewolf/ailabel.git
 cd ailabel
 
 # Install the package using uv
@@ -106,16 +106,13 @@ GOOGLE_API_KEY=your_gemini_api_key
 
 ```bash
 # Run all tests
-pytest
+uv run pytest
 
 # Run tests with coverage
-pytest --cov=ailabel
+uv run pytest --cov=ailabel
 ```
 
 ## License
 
 MIT 
 
-```
-uvx --no-cache --from . label -t school math
-```
